@@ -40,7 +40,7 @@ The task is complete once several examples (2-3) have been identified and descri
 Based on the results, I found one example of inaccurate Lidar based TTC estimation. The TTC estimation suddently goes to negative value and bounce back in consecutive frames.
 
 |Frame No. |TTC |Xmin|
-|*---*|*-----*|*----*|
+|:---:|:-----:|:----:|
 |28 |11.8211 s| 5.95 m |
 |29 |-23.5506 s |5.74 m |
 |30 |8.14053 s|5.79 m |
@@ -52,7 +52,7 @@ This is due to the flucuration in the denominator that drives the whole value to
 Based on results from previous project, the 3 best combinations are FAST/BRIEF, FAST/ORB and SHITOMASI/BRIEF. The comparision of camera based TTC with these three combinations are shown in below.
 
 |Frame No. |Lidar TTC |FAST/BRIEF | FAST/ORB | SHITOMASI/BRIEF|
-|*----*|*-----*|*----*|*-----*|*-----*|
+|:----:|:-----:|:----:|:-----:|:-----:|
 |1 |12.3245 |10.8026 |11.0544 |14.6756|
 |2 |13.3658 |11.0063 |10.6351 |14.4019 |
 |3 |16.3633 |14.1559 |13.4008 |9.73978 |
