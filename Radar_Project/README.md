@@ -16,9 +16,9 @@
 * If the CUT is greater than threshold, replace it by `1`, otherwise `0` <br>
 ```
 if (CUT > thres)
-		RDM(i,j) = 1;
+	RDM(i,j) = 1;
 else
-		RDM(i,j) = 0;
+	RDM(i,j) = 0;
 end
 ```
 ## Selection of Training, Guard cells and offset
