@@ -32,6 +32,10 @@ The process will generate a thresholded block, which is smaller than the Range D
 `RDM(:,union(1:(Td+Gd),end-(Td+Gd-1):end)) = 0;  % Columns`
 
 ## Result
+Result of FFT
 <img src="Results/FFT.jpg" width="779" height="414"/>
-<img src="Results/CFAR.jpg" width="779" height="414"/>
+Result of range-Doppler map
 <img src="Results/RangeDoppler.jpg" width="779" height="414"/>
+Result of CA-CFAR
+<img src="Results/CFAR.jpg" width="779" height="414"/>
+
