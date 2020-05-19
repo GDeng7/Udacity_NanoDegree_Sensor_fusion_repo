@@ -294,7 +294,7 @@ void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bb
                     auto &currKeyPoint = currFrame.keypoints[match.trainIdx].pt;
                     if (currBox.roi.contains(currKeyPoint))
                     {
-                        tmp[currBox.boxID] = tmp[currBox.boxID] + 1;;
+                        tmp[currBox.boxID] = tmp[currBox.boxID] + 1;
                     }
                 }
 
