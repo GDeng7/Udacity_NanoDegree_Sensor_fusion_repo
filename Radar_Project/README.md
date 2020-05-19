@@ -32,6 +32,6 @@ The process will generate a thresholded block, which is smaller than the Range D
 `RDM(:,union(1:(Td+Gd),end-(Td+Gd-1):end)) = 0;  % Columns`
 
 ## Result
-<img src="Results/FFT" width="779" height="414"/>
-<img src="Results/CFAR" width="779" height="414"/>
-<img src="Results/RangeDoppler" width="779" height="414"/>
+<img src="Results/FFT.jpg" width="779" height="414"/>
+<img src="Results/CFAR.jpg" width="779" height="414"/>
+<img src="Results/RangeDoppler.jpg" width="779" height="414"/>
