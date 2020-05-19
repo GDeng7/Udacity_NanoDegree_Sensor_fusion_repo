@@ -252,6 +252,6 @@ Based on results from previous project, the 3 best combinations are FAST/BRIEF, 
 
 Compared to the Lidar based TTC, the camera-based TTC is not stable. There are few values of camera-based TTC that change back and forth with more than 2 seconds in consecutive frames, which is not as consistent as TTC estimation using Lidar. This is because the calculation of TTC using camera used the median distance ratio and it assumed that all associated points are in the same plane. However, there are cases when some wrong matched points are counted as mactched keypoints and lead to inconsistency of TTC estimation. The comparison plot can be shown as below.
 
-<img src="images/ttc.png" width="600" height="650" />
+<img src="images/ttc.png" width="650" height="500" />
 
 
