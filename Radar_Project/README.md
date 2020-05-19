@@ -30,3 +30,8 @@ end
 The process will generate a thresholded block, which is smaller than the Range Doppler Map as the CUT cannot be located at the edges of matrix. Hence, few cells will not be thresholded. To keep the map size same set those values to 0. <br>
 `RDM(union(1:(Tr+Gr),end-(Tr+Gr-1):end),:) = 0;  % Rows`<br>
 `RDM(:,union(1:(Td+Gd),end-(Td+Gd-1):end)) = 0;  % Columns`
+
+## Result
+<img src="Results/FFT" />
+<img src="Results/CFAR" />
+<img src="Results/RangeDoppler" />
