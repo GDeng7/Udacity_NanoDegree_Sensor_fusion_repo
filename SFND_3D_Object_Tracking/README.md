@@ -229,9 +229,9 @@ Based on the results, I found one example of inaccurate Lidar based TTC estimati
 |29 |-23.5506 s |5.74 m |
 |30 |8.14053 s|5.79 m |
 
-<img src="images/Final Results : TTC_screenshot_18.05.2020.png" width="600" height="414" />
-<img src="images/Final Results : TTC_screenshot_18.05.2020_2.png" width="600" height="414" />
-<img src="images/Final Results : TTC_screenshot_18.05.2020_3.png" width="600" height="414" />
+<img src="images/Final Results : TTC_screenshot_18.05.2020.png" width="700" height="214" />
+<img src="images/Final Results : TTC_screenshot_18.05.2020_2.png" width="700" height="214" />
+<img src="images/Final Results : TTC_screenshot_18.05.2020_3.png" width="700" height="214" />
 
 This is due to the flucuration in the denominator that drives the whole value to negative. Because the vehicle is moving slowly, the average value of minimum range in current frame and previous frame are close and its difference could possibly be nagetive. 
 
@@ -262,6 +262,6 @@ Based on results from previous project, the 3 best combinations are FAST/BRIEF, 
 
 Compared to the Lidar based TTC, the camera-based TTC is not stable. There are few values of camera-based TTC that change back and forth with more than 2 seconds in consecutive frames, which is not as consistent as TTC estimation using Lidar. This is because the calculation of TTC using camera used the median distance ratio and it assumed that all associated points are in the same plane. However, there are cases when some wrong matched points are counted as mactched keypoints and lead to inconsistency of TTC estimation. The comparison plot can be shown as below.
 
-<img src="images/ttc.png" width="600" height="200" />
+<img src="images/ttc.png" width="600" height="500" />
 
 
