@@ -34,16 +34,204 @@ In this final project, you will implement the missing parts in the schematic. To
 3. Compile: `cmake .. && make`
 4. Run it: `./3D_object_tracking`.
 
+## Match 3D Objects
+
+```
+void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
+{
+    for (auto &prevBox : prevFrame.boundingBoxes)
+    {
+        std::map<int, int> tmp;
+        for (auto &currBox : currFrame.boundingBoxes)
+        {
+            for (auto &match : matches)
+            {
+                auto &prevKeyPoint = prevFrame.keypoints[match.queryIdx].pt;
+                if (prevBox.roi.contains(prevKeyPoint))
+                {
+                    auto &currKeyPoint = currFrame.keypoints[match.trainIdx].pt;
+                    if (currBox.roi.contains(currKeyPoint))
+                    {
+                        tmp[currBox.boxID] = tmp[currBox.boxID] + 1;;
+                    }
+                }
+
+            } // end of iterating all keypoint matches
+
+        } // end of iterating all current bounding boxes
+
+        auto bestMatch = std::max_element(tmp.begin(), tmp.end(), [](const std::pair<int, int> &kpt1, const std::pair<int, int> &kpt2) {return kpt1.second < kpt2.second;});
+
+        bbBestMatches[prevBox.boxID] = bestMatch->first;
+
+    } // end of iterating all previous bounding boxes
+}
+```
+
+## Compute Lidar based TTC
+```
+void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
+                     std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
+{
+     // auxiliary variables
+    double dT = 1/frameRate;        // time between two measurements in seconds
+    double laneWidth = 4.0;         // assumed width of the ego lane
+    double averageXCurr = 0;
+    double averageXPrev = 0;
+
+    // find closest distance to Lidar points within ego lane
+    double minXPrev = 1e9, minXCurr = 1e9;
+    for (auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
+    {
+      if ( abs(it->y) <= (laneWidth/2)){
+        averageXPrev += it->x;
+      }
+    }
+
+    for (auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
+    {
+      if( abs(it->y) <= (laneWidth/2)){
+        averageXCurr += it->x;
+      }
+    }
+
+    if (!lidarPointsPrev.empty()) { 
+        averageXPrev /= lidarPointsPrev.size();   
+    }
+
+    if (!lidarPointsCurr.empty()) { 
+        averageXCurr /= lidarPointsCurr.size();  
+    }
+
+
+    for (auto point : lidarPointsCurr) {
+        double threshold = 0.75 * averageXCurr;
+
+        if (point.x > threshold) { 
+            minXCurr = point.x; 
+        }
+    }
+
+    // compute TTC from both measurements
+    TTC = (minXCurr * dT) / (averageXPrev - averageXCurr);
+
+    std::cout<<"Lidar TTC: "<<TTC<<endl;
+    std::cout<<"Xmin: "<<minXCurr<<endl;
+}
+```
+
+## Associate Keypoint Correspondences with Bounding Boxes
+```
+void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, std::vector<cv::DMatch> &kptMatches)
+{
+    // calculate mean point match distance in the bounding box
+    double sum = 0;
+    double size = 0;
+
+    for (auto it = kptMatches.begin(); it != kptMatches.end(); ++it)
+    {
+        cv::KeyPoint currKeyPoint = kptsCurr[it->trainIdx];
+        cv::KeyPoint prevKeyPoint = kptsPrev[it->queryIdx];
+
+        if (boundingBox.roi.contains(currKeyPoint.pt))
+        {
+            sum += cv::norm(currKeyPoint.pt - prevKeyPoint.pt);
+            size +=1;
+        }
+    }
+
+    double mean = sum / size;
+
+    // filter point match based on point match distance
+    for (auto it2 = kptMatches.begin(); it2 != kptMatches.end(); ++it2)
+    {
+        cv::KeyPoint currKeyPoint = kptsCurr[it2->trainIdx];
+        cv::KeyPoint prevKeyPoint = kptsPrev[it2->queryIdx];
+
+        if (boundingBox.roi.contains(currKeyPoint.pt))
+        {
+            double curr_dist = cv::norm(currKeyPoint.pt - prevKeyPoint.pt);
+
+            if (curr_dist < mean * 1.5)
+            {
+                boundingBox.keypoints.push_back(currKeyPoint);
+                boundingBox.kptMatches.push_back(*it2);
+            }
+        }
+    }
+}
+```
+
+## Compute camera based TTC
+
+```
+void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPoint> &kptsCurr, 
+                      std::vector<cv::DMatch> kptMatches, double frameRate, double &TTC, cv::Mat *visImg)
+{
+    // compute distance ratios between all matched keypoints
+    vector<double> distRatios; // stores the distance ratios for all keypoints between curr. and prev. frame
+    for (auto it1 = kptMatches.begin(); it1 != kptMatches.end() - 1; ++it1)
+    { // outer kpt. loop
+
+        // get current keypoint and its matched partner in the prev. frame
+        cv::KeyPoint kpOuterCurr = kptsCurr.at(it1->trainIdx);
+        cv::KeyPoint kpOuterPrev = kptsPrev.at(it1->queryIdx);
+
+        for (auto it2 = kptMatches.begin() + 1; it2 != kptMatches.end(); ++it2)
+        { // inner kpt.-loop
+
+            double minDist = 100.0; // min. required distance
+
+            // get next keypoint and its matched partner in the prev. frame
+            cv::KeyPoint kpInnerCurr = kptsCurr.at(it2->trainIdx);
+            cv::KeyPoint kpInnerPrev = kptsPrev.at(it2->queryIdx);
+
+            // compute distances and distance ratios
+            double distCurr = cv::norm(kpOuterCurr.pt - kpInnerCurr.pt);
+            double distPrev = cv::norm(kpOuterPrev.pt - kpInnerPrev.pt);
+
+            if (distPrev > std::numeric_limits<double>::epsilon() && distCurr >= minDist)
+            { // avoid division by zero
+
+                double distRatio = distCurr / distPrev;
+                distRatios.push_back(distRatio);
+            }
+        } // eof inner loop over all matched kpts
+    }     // eof outer loop over all matched kpts
+
+    // only continue if list of distance ratios is not empty
+    if (distRatios.size() == 0)
+    {
+        TTC = NAN;
+        return;
+    }
+
+    // compute camera-based TTC from distance ratios
+    std::sort(distRatios.begin(),distRatios.end());
+    long medianIdx = floor(distRatios.size()/2);
+    double medDistRatio = distRatios.size() % 2 == 0 ? (distRatios[medianIdx - 1] + distRatios[medianIdx])/2 : distRatios[medianIdx];
+
+    double dT = 1 / frameRate;
+    TTC = -dT / (1 - medDistRatio);
+
+    std::cout<<"Camera TTC: "<<TTC<<endl;
+}
+```
+
 ## Performance evaluation of Lidar TTC
 The task is complete once several examples (2-3) have been identified and described in detail. The assertion that the TTC is off should be based on manually estimating the distance to the rear of the preceding vehicle from a top view perspective of the Lidar points.
 
-Based on the results, I found one example of inaccurate Lidar based TTC estimation. The TTC estimation suddently goes to negative value and bounce back in consecutive frames.
+Based on the results, I found one example of inaccurate Lidar based TTC estimation as shown in following figures. The TTC estimation suddently goes to negative value from the first figure to the second figure and bounce back to positive value from the second figure to the third figure in consecutive.
 
 |Frame No. |TTC |Xmin|
 |:---:|:-----:|:----:|
 |28 |11.8211 s| 5.95 m |
 |29 |-23.5506 s |5.74 m |
 |30 |8.14053 s|5.79 m |
+
+<img src="images/Final Results : TTC_screenshot_18.05.2020.png" width="779" height="414" />
+<img src="images/Final Results : TTC_screenshot_18.05.2020_2.png" width="779" height="414" />
+<img src="images/Final Results : TTC_screenshot_18.05.2020_3.png" width="779" height="414" />
 
 This is due to the flucuration in the denominator that drives the whole value to negative. Because the vehicle is moving slowly, the average value of minimum range in current frame and previous frame are close and its difference could possibly be nagetive. 
 
@@ -72,7 +260,7 @@ Based on results from previous project, the 3 best combinations are FAST/BRIEF, 
 |17 |11.2891 |7.92013 |7.56799 |11.1382 |
 |18 |8.57706 |11.554 |10.3912 |8.43097 |
 
-Compared to the Lidar based TTC, the camera-based TTC is not stable. There are few values of camera-based TTC that change back and forth with more than 2 seconds in consecutive frames, which is not as consistent as TTC estimation using Lidar. This is because the calculation of TTC using camera used the median distance ratio and it assumed that all associated points are in the same plane. However, there are cased when some wrong matched points are counted as mactched keypoints and lead to inconsistency of TTC estimation. The comparison plot can be shown as below.
+Compared to the Lidar based TTC, the camera-based TTC is not stable. There are few values of camera-based TTC that change back and forth with more than 2 seconds in consecutive frames, which is not as consistent as TTC estimation using Lidar. This is because the calculation of TTC using camera used the median distance ratio and it assumed that all associated points are in the same plane. However, there are cases when some wrong matched points are counted as mactched keypoints and lead to inconsistency of TTC estimation. The comparison plot can be shown as below.
 
 <img src="images/ttc.png" width="500" height="200" />
 
